@@ -274,7 +274,17 @@
     transform: translateX(3px);
   }
 
-  .card.shake{ animation: shake 0.4s ease; }
+  /* once the entrance animation finishes, its "forwards" state is frozen
+     here as a real style — so later giving the card a different
+     "animation" (the shake) can never reset it back to its opacity:0
+     starting point. */
+  .card.settled{
+    opacity: 1;
+    transform: translateY(0);
+    animation: none;
+  }
+
+  .card.settled.shake{ animation: shake 0.4s ease; }
   @keyframes shake{
     0%, 100%{ transform: translateX(0); }
     25%{ transform: translateX(-4px); }
@@ -293,7 +303,7 @@
 
   @media (prefers-reduced-motion: reduce){
     *{ animation: none !important; transition: none !important; }
-    .path-pill, .tagline, .ls-label, .card, .page-footer{ opacity: 1; transform: none; }
+    .path-pill, .tagline, .ls-label, .card, .page-footer{ opacity: 1 !important; transform: none !important; }
   }
 </style>
 </head>
@@ -384,14 +394,24 @@
   }
   runBoot(0);
 
+  // once each card's entrance animation finishes, freeze that state as a
+  // real style so it can never be reset by a later animation (e.g. shake)
+  document.querySelectorAll('.card').forEach((card) => {
+    card.addEventListener('animationend', (e) => {
+      if (e.animationName === 'rise') card.classList.add('settled');
+    });
+  });
+
   // navigation
   document.getElementById('dsCard').addEventListener('click', () => {
     window.location.href = 'ds.html';
   });
 
-  // disabled card gives a shake, not a navigation
+  // disabled card: no navigation, just a shake to say "not yet" — the
+  // card itself is never removed or hidden
   const dsdCard = document.getElementById('dsdCard');
-  dsdCard.addEventListener('click', () => {
+  dsdCard.addEventListener('click', (e) => {
+    e.preventDefault();
     dsdCard.classList.remove('shake');
     void dsdCard.offsetWidth;
     dsdCard.classList.add('shake');
